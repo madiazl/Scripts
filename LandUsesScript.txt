@@ -1,0 +1,63 @@
+import netCDF4 as nc
+import numpy as np
+
+file_landuse = nc.Dataset(r'C:\Glofris\v18\landuse_1_base_2010.h5', 'r', format='h5');
+landuse = file_landuse.variables['data'];
+landuse.set_auto_maskandscale(False);
+
+
+
+file_landuse_new = nc.Dataset(r'C:\Glofris\v18\result_structure\exposure\base\exposure_base_2010_urb.nc', 'r', format='NETCDF4');
+#file_landuse_new = nc.Dataset(r'C:\Glofris\v18\result_structure\exposure\SSP2\exposure_SSP1_2020_urb.nc', 'r', format='NETCDF4');
+landuse_new = file_landuse_new.variables['Urban Land use'];
+landuse_new.set_auto_maskandscale(False);
+landuse_new2=landuse_new[0][:][:]
+
+condition_urbanarea_nefile=(landuse_new2[:][:]==1)
+urbancells_newfile=np.extract(condition_urbanarea_nefile,landuse_new2[:][:])
+
+condition_urbanarea_nefile[4193:5127,22305:23404]
+newcon
+urbancells_newfile=np.extract(newcon,landuse_new2[:][:])
+
+geogunits=nc.Dataset(r'C:\Glofris\v18\geogunit_2.h5', 'r', format='h5');
+data=geogunits.variables['data']
+data.set_auto_maskandscale(False)
+#data=np.array(data)
+#data=data.T
+# SELECTING THE CELLS OF germany code: DEU number 85
+#cell_condition2 = np.where(data[:][:]==85)
+
+cell_condition = (data[:][:]==157)
+cell_condition=cell_condition.T
+np.where(cell_condition==True)
+landuse_list = np.extract(cell_condition,landuse[:][:])
+landuse_new_list = np.extract(cell_condition,landuse_new2[:][:])
+
+
+
+#to see the cumulative value of the land uses
+print np.sum(landuse_list)
+print np.sum(landuse_new_list)
+print np.max(landuse_new2[4193:5127,22305:23404])
+
+
+#all the cells in the world
+landuse_list_con=(landuse[:][:]>0)
+landuse_list_world=np.extract(landuse_list_con,landuse[:][:])
+
+landuse_list_con_new=(landuse_new2[:][:]>0)
+landuse_list_world_new=np.extract(landuse_list_con_new,landuse_new2[:][:])
+
+print np.nansum(landuse_list_world) #number of cells urban old
+print np.nansum(landuse_list_world_new) #number of cells urban new
+
+print len(landuse_list_world)
+print len(landuse_list_world_new)
+
+#to see the values in the land uses maps
+landuse_list[np.where(landuse_list[:][:]>0)]
+landuse_new_list[np.where(landuse_new_list[:][:]>0)]
+len(landuse_new_list[np.where(landuse_new_list==1)])
+len(landuse_new_list[np.where(landuse_new_list==0)])
+len(landuse_new_list)

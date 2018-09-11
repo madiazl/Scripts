@@ -1,0 +1,132 @@
+import netCDF4 as nc
+import numpy as np
+import matplotlib.pyplot as plt
+import os
+os.chdir(r'C:\Glofris\WRI')
+from osgeo import gdal
+gdal.AllRegister()
+
+
+
+file_landuse = nc.Dataset(r'C:\Glofris\WRI\landuse_1_base_2010.h5', 'r', format='h5'); #old Hyde land uses
+landuse = file_landuse.variables['data'];
+landuse.set_auto_maskandscale(False);
+
+file_landuse = nc.Dataset(r'C:\Glofris\WRI\cell_size_km2.h5', 'r', format='h5'); #old Hyde land uses
+cell_size_var = file_landuse.variables['data'];
+cell_size_var.set_auto_maskandscale(False);
+
+
+# urban areas nc file downloaded from svn deltares
+file_landuse_new = nc.Dataset(r'C:\Glofris\WRI\exposure_base_2010_urb.nc', 'r', format='NETCDF4'); 
+#file_landuse_new = nc.Dataset(r'C:\Glofris\v18\result_structure\exposure\SSP2\exposure_SSP1_2020_urb.nc', 'r', format='NETCDF4'); #another case
+#file_landuse_new.renameVariable('Urban Land Use','urb')
+landuse_new = file_landuse_new.variables['Urban Land Use'];
+landuse_new.set_auto_maskandscale(False);
+#landuse_new2=landuse_new[0][:,:] #in order to keep only one temporal dimension
+landuse_new=landuse_new[::-1] #IN ORDER TO FLIPUP SIDE DOWN
+
+geogunits=nc.Dataset(r'C:\Glofris\WRI\geogunit_2.h5', 'r', format='h5');
+data=geogunits.variables['data']
+data.set_auto_maskandscale(False)
+#data=np.array(data)
+#data=data.T
+# SELECTING THE CELLS OF germany code: DEU number 85
+
+#opening Landuses Jolien Feb
+
+File_Land_Uses_Feb = gdal.Open(r"C:\Glofris\WRI\NewPBL\URBANAREA_2010.tif")
+band_land_uses = File_Land_Uses_Feb.GetRasterBand(1)
+landuse_new = (band_land_uses.ReadAsArray(0, 0, File_Land_Uses_Feb.RasterXSize, File_Land_Uses_Feb.RasterYSize).astype(np.float64))
+landuse_new[landuse_new==band_land_uses.GetNoDataValue()]=0  #if the non data value is not weird as a float number it works, other wise need to be implemented a trick
+print(np.nansum(landuse_new))
+
+
+Table = np.array([['FID','UA_OLU','UA_NLU','A']])
+
+Area_times_landuse_old = np.multiply(landuse,cell_size_var)
+Area_times_landuse_new = np.multiply(landuse_new,cell_size_var)
+np.nansum(Area_times_landuse_old)
+#660843.5992
+np.nansum(Area_times_landuse_new)
+#1633188
+
+for i in range(0,253):
+        print(i)
+        #cell_condition = np.where(data[:][:]==i)
+        cell_condition = (data[:][:]==i)
+        UA_OLU_cells = np.extract(cell_condition,Area_times_landuse_old[:][:])
+        UA_NLU_cells = np.extract(cell_condition,Area_times_landuse_new[:][:])
+        A_cells = np.extract(cell_condition,cell_size_var[:][:])
+        UA_OLU=np.nansum(UA_OLU_cells)
+        UA_NLU=np.nansum(UA_NLU_cells)
+        A=np.nansum(A_cells)
+        Table=np.vstack((Table, np.array([i,UA_OLU,UA_NLU,A])))
+
+np.savetxt(r'C:\Glofris\WRI\NewPBL\landUse_PBL_Feb.txt',(Table),delimiter='\t',fmt='%s')
+
+#Untill here it goes the assessment of the urban area. In the file landUse_PBL_Feb.txt is stored the urban area of old land uses and new land uses and the country area
+
+import csv
+
+# write it
+with open('landUse_PBL_Feb.csv', 'w') as csvfile:
+    writer = csv.writer(csvfile)
+    [writer.writerow(r) for r in Table]
+	cell_condition = np.where(data[:][:]==85)
+	cell_condition = (data[:][:]==85)
+
+	UA_OLU_cells = np.extract(cell_condition,Area_times_landuse_old[:][:])
+	UA_NLU_cells = np.extract(cell_condition,Area_times_landuse_new[:][:])
+	A_cells = np.extract(cell_condition,cell_size_var[:][:])
+	UA_OLU=np.nansum(UA_OLU_cells)
+	UA_NLU=np.nansum(UA_NLU_cells)
+	A=np.nansum(A_cells)
+	Table=np.vstack((Table, np.array([i,UA_OLU,UA_NLU,A])))
+
+#_______________________________________________________________________
+coordx=file_landuse_new.variables['lon'];
+coordy=file_landuse_new.variables['lat'];
+
+cell_condition2 = np.where(data[:][:]==85)
+landuse_new2[4674][22305]
+coordx[4674][22305]
+coordy[4674][22305]
+
+cell_condition = (data[:][:]==85)
+#cell_condition=cell_condition.T
+landuse_list = np.extract(cell_condition,landuse[:][:])
+cell_condition = np.flipud(cell_condition)
+landuse_new_list = np.extract(cell_condition,landuse_new2[:][:])
+where2=np.where(landuse_new_list<127)
+landuse_new_list[where2]
+
+
+#to see the cumulative value of the land uses
+print np.sum(landuse_list)
+print np.sum(landuse_new_list)
+print np.sum(landuse_new_list[where2])
+
+
+#checking for all the world
+condition_urbanarea_nefile=(landuse_new2[:][:]==1) 
+urbancells_newfile=np.extract(condition_urbanarea_nefile,landuse_new2[:][:])
+con_germany=condition_urbanarea_nefile[4193:5127,22305:23404]
+urbancells_newfile_germany=np.extract(con_germany,landuse_new2[:][:])
+
+print len(urbancells_newfile) #number of urban cells in all the world
+print np.sum(urbancells_newfile) #sum of all the cells all over the world (in principle equal than previous row)
+print len(urbancells_newfile_germany)
+print np.sum(urbancells_newfile_germany)
+
+
+data_chunk = data[20000:24600,1:9000]
+data_chunk=data_chunk.T
+plt.figure(1)
+plt.imshow(data_chunk)
+plt.colorbar()
+plt.show()
+nc.close()
+
+
+
